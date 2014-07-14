@@ -44,27 +44,6 @@
 #define BLANK_PORT PORTB
 #define BLANK_PIN PB2
 
-// The following options are configurable from the Makefile
-#ifndef DCPRG_DDR
-#define DCPRG_DDR DDRD
-#endif
-#ifndef DCPRG_PORT
-#define DCPRG_PORT PORTD
-#endif
-#ifndef DCPRG_PIN
-#define DCPRG_PIN PD4
-#endif
-
-#ifndef VPRG_DDR
-#define VPRG_DDR DDRD
-#endif
-#ifndef VPRG_PORT
-#define VPRG_PORT PORTD
-#endif
-#ifndef VPRG_PIN
-#define VPRG_PIN PD7
-#endif
-
 #ifndef XLAT_DDR
 #define XLAT_DDR DDRB
 #endif

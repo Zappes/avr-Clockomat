@@ -31,6 +31,7 @@
 
 #include "tlc5940.h"
 #include "clockdisplay.h"
+#include "clockcontrol.h"
 
 #if (3 * 16 * TLC5940_N > 255)
 #define channel3_t uint16_t
@@ -39,6 +40,8 @@
 #endif
 
 uint8_t gsData[gsDataSize];
+extern volatile uint16_t switch_off_counter;
+
 
 void TLC5940_SetGS(channel_t channel, uint16_t value) {
 	channel = numChannels - 1 - channel;
@@ -71,15 +74,11 @@ void TLC5940_SetAllGS(uint16_t value) {
 
 void TLC5940_Init(void) {
 	setOutput(SCLK_DDR, SCLK_PIN);
-	setOutput(DCPRG_DDR, DCPRG_PIN);
-	setOutput(VPRG_DDR, VPRG_PIN);
 	setOutput(XLAT_DDR, XLAT_PIN);
 	setOutput(BLANK_DDR, BLANK_PIN);
 	setOutput(SIN_DDR, SIN_PIN);
 	
 	setLow(SCLK_PORT, SCLK_PIN);
-	setLow(DCPRG_PORT, DCPRG_PIN);
-	setHigh(VPRG_PORT, VPRG_PIN);
 	setLow(XLAT_PORT, XLAT_PIN);
 	setHigh(BLANK_PORT, BLANK_PIN);
 	
@@ -104,37 +103,47 @@ void TLC5940_Init(void) {
 ISR(TIMER0_COMPA_vect) {
 	static uint8_t xlatNeedsPulse = 0;
 	static uint8_t scanRow = 0;
+	static uint16_t animation_delay = 0;
 	
 	setHigh(BLANK_PORT, BLANK_PIN);
 	
-	if (outputState(VPRG_PORT, VPRG_PIN)) {
-		setLow(VPRG_PORT, VPRG_PIN);
-		if (xlatNeedsPulse) {
-			pulse(XLAT_PORT, XLAT_PIN);
-			xlatNeedsPulse = 0;
-		}
-		pulse(SCLK_PORT, SCLK_PIN);
-	} else if (xlatNeedsPulse) {
+	if (xlatNeedsPulse) {
 		pulse(XLAT_PORT, XLAT_PIN);
 		xlatNeedsPulse = 0;
 	}
 	
 	setLow(BLANK_PORT, BLANK_PIN);
 	
-	SPDR = (1 << scanRow);
-	paintLine(scanRow);
 
-	if (scanRow < 5) {
+	SPDR = (1 << scanRow);
+	paint_line(scanRow);
+
+	if (scanRow < 6) {
 		scanRow++;
 	} else {
 		scanRow = 0;
 	}
 
-	while (!(SPSR & (1 << SPIF)));
+	while (!(SPSR & _BV(SPIF)));
 	
 	for (gsData_t i = 0; i < gsDataSize; i++) {
 		SPDR = gsData[i];
-		while (!(SPSR & (1 << SPIF)));
+		while (!(SPSR & _BV(SPIF)));
 	}
 	xlatNeedsPulse = 1;
+
+	if(switch_off_counter > 0) {
+		switch_off_counter--;
+		if(switch_off_counter == 0) {
+			start_fade_out();
+		}
+	}
+
+	if(animation_delay == 0) {
+		animate();
+		animation_delay = 156;
+	}
+	else {
+		animation_delay--;
+	}
 }
