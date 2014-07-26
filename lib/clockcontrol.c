@@ -91,7 +91,7 @@ void dcf_enable_alarm(uint8_t state) {
 		write_dcf_reg(DCF_REG_ALRM_CONFIG, 2);
 	}
 	else {
-		write_dcf_reg(DCF_REG_INT_CONFIG, 0);
+		write_dcf_reg(DCF_REG_ALRM_CONFIG, 0);
 	}
 }
 uint8_t dcf_is_alarm() {
@@ -101,10 +101,14 @@ void dcf_clear_alarm() {
 	write_dcf_reg(DCF_REG_STATUS, _BV(DCF_REGBIT_STATUS_AIF));
 }
 
+/*
+ * Es wird der sekündliche Interrupt verwendet, weil der minütliche nicht
+ * zuverlässig ist, zumindest nicht bei meinem Modul.
+ */
 void dcf_enable_periodic(uint8_t state) {
 	if(state == 1) {
 		dcf_clear_periodic();
-		write_dcf_reg(DCF_REG_INT_MODE, 3);			// periodic interrupt on every minute.
+		write_dcf_reg(DCF_REG_INT_MODE, 2);			// periodic interrupt on every second
 		write_dcf_reg(DCF_REG_INT_CONFIG, 6);		// enable periodic interrupt.
 	}
 	else {

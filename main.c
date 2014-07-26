@@ -30,29 +30,41 @@ int main(void) {
 
 	update_time();
 
+	uint8_t last_minute = 60;
+
 	while(1) {
 		if(dcf_is_periodic()) {
-			update_time();
 			dcf_clear_periodic();
+			update_time();
 
-			if(alarm_is_enabled()) {
-				if((alarm_get_hours() == time_get_hours()) && (alarm_get_minutes() == time_get_minutes())) {
-					alarm_start_sound();
+			/*
+			 * Den Mist mit "last_minute" braucht es deshalb, weil die periodischen interrupts des dcf-moduls
+			 * nicht zuverlässig sind. Deshalb ist es so gemacht, dass der sekündliche Interrupt abgegriffen wird,
+			 * der Alarm wird aber nur ausgelöst, wenn sich die Minute im Vergleich zum letzten Interrupt geändert hat.
+			 */
+			uint8_t minute = time_get_minutes();
+
+			if(minute != last_minute) {
+				last_minute = minute;
+
+				if(alarm_is_enabled()) {
+					if((alarm_get_hours() == time_get_hours()) && (alarm_get_minutes() == minute)) {
+						alarm_start_sound();
+					}
+				}
+
+				if(minutes_without_dcf > DCF_LOST_TIMEOUT) {
+					clear_statusbit(STATUS_DCF);
+				}
+				else {
+					minutes_without_dcf++;
 				}
 			}
-
-			if(minutes_without_dcf > DCF_LOST_TIMEOUT) {
-				clear_statusbit(STATUS_DCF);
-			}
-			else {
-				minutes_without_dcf++;
-			}
 		}
+
 		if(dcf_is_dcfupdate()) {
-			update_time();
 			minutes_without_dcf = 0;
 			set_statusbit(STATUS_DCF);
-			dcf_enable_dcfupdate(0);
 			dcf_clear_dcfupdate();
 		}
 

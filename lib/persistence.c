@@ -26,7 +26,7 @@ void persistence_restore(uint8_t *enable, uint8_t *hours, uint8_t *minutes) {
 	else {
 		*enable = 0;
 		*hours = 7;
-		*minutes = 00;
+		*minutes = 0;
 	}
 }
 
