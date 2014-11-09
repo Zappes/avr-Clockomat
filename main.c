@@ -9,7 +9,12 @@
 #include "lib/status.h"
 #include "lib/persistence.h"
 
-#define DCF_LOST_TIMEOUT 15
+#define DCF_LOST_TIMEOUT 60
+
+// Wenn der DCF-Empfang nicht klappt, wird alle
+// n Minuten der DCF-Empfänger resettet. Diese
+// Zahl hier gibt das n an.
+#define DCF_RESET_INTERVAL 15
 
 uint8_t alarm_mode = 0;
 uint8_t minutes_without_dcf = 0;
@@ -53,8 +58,12 @@ int main(void) {
 					}
 				}
 
-				if(minutes_without_dcf > DCF_LOST_TIMEOUT) {
+				if(minutes_without_dcf >= DCF_LOST_TIMEOUT) {
 					clear_statusbit(STATUS_DCF);
+
+					if(minutes_without_dcf % DCF_RESET_INTERVAL == 0) {
+						dcf_reset_dcfreceive();
+					}
 				}
 				else {
 					minutes_without_dcf++;
@@ -63,9 +72,9 @@ int main(void) {
 		}
 
 		if(dcf_is_dcfupdate()) {
+			dcf_clear_dcfupdate();
 			minutes_without_dcf = 0;
 			set_statusbit(STATUS_DCF);
-			dcf_clear_dcfupdate();
 		}
 
 		if(alarm_is_sound_started()) {

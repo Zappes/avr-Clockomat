@@ -69,9 +69,23 @@ void update_time() {
 	time_set_time_bcd(hour, minute);
 }
 
+/*
+ * Disables DCF updates, waits a few milliseconds, enables it again. This
+ * is an attempt to solve the problem where the DCF module simply stops
+ * working after some time.
+ */
+void dcf_reset_dcfreceive() {
+	// this disables DCF completely. no DCF receive function, no interrupt
+	write_dcf_reg(DCF_REG_DCF_CONFIG, 0);
+
+	// wait a moment before re-enabling DCF
+	_delay_ms(10);
+
+	write_dcf_reg(DCF_REG_DCF_CONFIG, 3);
+}
+
 void dcf_enable_dcfupdate(uint8_t state) {
 	if(state == 1) {
-		dcf_clear_dcfupdate();
 		write_dcf_reg(DCF_REG_DCF_CONFIG, 3);
 	}
 	else {
@@ -87,7 +101,6 @@ void dcf_clear_dcfupdate() {
 
 void dcf_enable_alarm(uint8_t state) {
 	if(state == 1) {
-		dcf_clear_alarm();
 		write_dcf_reg(DCF_REG_ALRM_CONFIG, 2);
 	}
 	else {
@@ -107,9 +120,8 @@ void dcf_clear_alarm() {
  */
 void dcf_enable_periodic(uint8_t state) {
 	if(state == 1) {
-		dcf_clear_periodic();
 		write_dcf_reg(DCF_REG_INT_MODE, 2);			// periodic interrupt on every second
-		write_dcf_reg(DCF_REG_INT_CONFIG, 6);		// enable periodic interrupt.
+		write_dcf_reg(DCF_REG_INT_CONFIG, 2);		// enable periodic interrupt
 	}
 	else {
 		write_dcf_reg(DCF_REG_INT_CONFIG, 0);

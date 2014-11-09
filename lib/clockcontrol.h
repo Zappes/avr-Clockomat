@@ -45,6 +45,7 @@ uint8_t read_dcf_reg(uint8_t reg);
 void write_dcf_reg(uint8_t reg, uint8_t val);
 void update_time();
 
+void dcf_reset_dcfreceive();
 void dcf_enable_dcfupdate(uint8_t state);
 uint8_t dcf_is_dcfupdate();
 void dcf_clear_dcfupdate();

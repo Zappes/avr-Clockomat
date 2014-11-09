@@ -11,7 +11,7 @@
 #define ALARM_SOUNDPIN			PD3
 
 #define ALARM_BEEP_LENGTH		2000
-#define ALARM_BEEP_VOLUME		200
+#define ALARM_BEEP_VOLUME		170
 #define ALARM_MAX_BEEPS			200
 
 void alarm_init();

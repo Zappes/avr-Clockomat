@@ -20,9 +20,6 @@ void alarm_init() {
 	// enable input on the pins for the button and the rotary encoder
 	ALARM_DDR &= ~(_BV(ALARM_SHOW_BUTTON) | _BV(ALARM_INC) | _BV(ALARM_DEC));
 
-	// enable output on the pin to which the alarm beeper is connected
-	ALARM_DDR |= _BV(ALARM_SOUNDPIN);
-
 	// read alarm settings from eeprom, if available
 	persistence_restore(&alarm_enabled, &alarm_hours, &alarm_minutes);
 
@@ -117,6 +114,9 @@ uint8_t alarm_is_sound_started() {
 }
 
 void alarm_start_sound() {
+	// enable output on the pin to which the alarm beeper is connected
+	ALARM_DDR |= _BV(ALARM_SOUNDPIN);
+
 	// disable the timer
 	TCCR2B = 0;
 
@@ -152,6 +152,9 @@ void alarm_stop_sound() {
 
 	// switch off signal. if the PWM was just running, this might still be high, otherwise.
 	ALARM_OUTPORT &= ~_BV(ALARM_SOUNDPIN);
+
+	// disable output on the pin to which the alarm beeper is connected
+	ALARM_DDR &= ~_BV(ALARM_SOUNDPIN);
 }
 
 ISR(TIMER2_OVF_vect) {
