@@ -42,6 +42,10 @@
 uint8_t gsData[gsDataSize];
 extern volatile uint16_t switch_off_counter;
 
+// this is the number of ISR ticks after which the periodic interrupt flag in clockcontrol will be set.
+#define PERIODIC_TICK_MAX 4000
+uint16_t periodic_tick_count = 0;
+
 
 void TLC5940_SetGS(channel_t channel, uint16_t value) {
 	channel = numChannels - 1 - channel;
@@ -101,6 +105,10 @@ void TLC5940_Init(void) {
 
 // This interrupt will get called every 4096 clock cycles
 ISR(TIMER0_COMPA_vect) {
+
+	//=============================================
+	// display update
+	//=============================================
 	static uint8_t xlatNeedsPulse = 0;
 	static uint8_t scanRow = 0;
 	static uint16_t animation_delay = 0;
@@ -132,6 +140,9 @@ ISR(TIMER0_COMPA_vect) {
 	}
 	xlatNeedsPulse = 1;
 
+	//=============================================
+	// automatic fade-out after 2 seconds
+	//=============================================
 	if(switch_off_counter > 0) {
 		switch_off_counter--;
 		if(switch_off_counter == 0) {
@@ -139,11 +150,25 @@ ISR(TIMER0_COMPA_vect) {
 		}
 	}
 
+	//=============================================
+	// fade animation
+	//=============================================
 	if(animation_delay == 0) {
 		animate();
 		animation_delay = 156;
 	}
 	else {
 		animation_delay--;
+	}
+
+	//=============================================
+	// set periodic flag for clock control
+	//=============================================
+	if(periodic_tick_count == 0) {
+		tlc_set_periodic();
+		periodic_tick_count = PERIODIC_TICK_MAX;
+	}
+	else {
+		periodic_tick_count --;
 	}
 }

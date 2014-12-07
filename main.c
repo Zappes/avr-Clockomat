@@ -9,15 +9,17 @@
 #include "lib/status.h"
 #include "lib/persistence.h"
 
+// anzahl der minuten ohne dcf-interrupt, nach der das DCF-statusflag gelöscht wird
 #define DCF_LOST_TIMEOUT 60
-
-// Wenn der DCF-Empfang nicht klappt, wird alle
-// n Minuten der DCF-Empfänger resettet. Diese
-// Zahl hier gibt das n an.
-#define DCF_RESET_INTERVAL 15
+// anzahl der sekunden ohne periodic-interrupt, nach der das Sync-statusflag gelöscht wird
+#define PERIODIC_LOST_TIMEOUT 60
+// anzahl der tlc_periodic-ticks ohne uhrzeitänderung, nach der die uhr als stehengeblieben gilt
+#define PROGRESS_LOST_TIMEOUT 2
 
 uint8_t alarm_mode = 0;
 uint8_t minutes_without_dcf = 0;
+uint8_t seconds_without_periodic = 0;
+uint8_t ticks_without_progress = 0;
 
 int main(void) {
 	put_status(0);
@@ -36,19 +38,57 @@ int main(void) {
 	update_time();
 
 	uint8_t last_minute = 60;
+	uint8_t last_second = 60;
 
 	while(1) {
+
+		// wenn das ELV-modul ausnahmsweise mal funktioniert und interrupts erzeugt, werden die
+		// entsprechenden status-leds angemacht.
+		if(dcf_is_dcfupdate()) {
+			dcf_clear_dcfupdate();
+			minutes_without_dcf = 0;
+			set_statusbit(STATUS_DCF);
+		}
+
 		if(dcf_is_periodic()) {
 			dcf_clear_periodic();
+			seconds_without_periodic = 0;
+			set_statusbit(STATUS_PERIODIC);
+		}
+
+		/*
+		 * Den Mist mit dem update anhand des tlc-ticks braucht es deshalb, weil die periodischen interrupts des dcf-moduls
+		 * nicht zuverlässig sind. Deswegen wird anhand des Display-Refresh etwa alle Sekunde die Zeit ausgelesen und gecheckt,
+		 * ob wir schon in einer neuen Minute sind.
+		 */
+		if(tlc_is_periodic()) {
+			tlc_clear_periodic();
 			update_time();
 
-			/*
-			 * Den Mist mit "last_minute" braucht es deshalb, weil die periodischen interrupts des dcf-moduls
-			 * nicht zuverlässig sind. Deshalb ist es so gemacht, dass der sekündliche Interrupt abgegriffen wird,
-			 * der Alarm wird aber nur ausgelöst, wenn sich die Minute im Vergleich zum letzten Interrupt geändert hat.
-			 */
+			if(seconds_without_periodic >= PERIODIC_LOST_TIMEOUT) {
+				clear_statusbit(STATUS_PERIODIC);
+			}
+			else {
+				seconds_without_periodic++;
+			}
+
+			uint8_t second = time_get_seconds();
+			if(second != last_second) {
+				last_second = second;
+				ticks_without_progress = PROGRESS_LOST_TIMEOUT;
+				set_statusbit(STATUS_PROGRESS);
+			}
+			else if(ticks_without_progress > 0){
+				ticks_without_progress--;
+			}
+			else {
+				clear_statusbit(STATUS_PROGRESS);
+			}
+
+
 			uint8_t minute = time_get_minutes();
 
+			// wir sind in einer neuen minute angekommen. alarmbedingungen checken!
 			if(minute != last_minute) {
 				last_minute = minute;
 
@@ -58,23 +98,15 @@ int main(void) {
 					}
 				}
 
+				// falls das verkackte DCF-modul länger als DCF_LOST_TIMEOUT kein update mehr gemacht hat,
+				// wird die DCF-sync-LED ausgemacht.
 				if(minutes_without_dcf >= DCF_LOST_TIMEOUT) {
 					clear_statusbit(STATUS_DCF);
-
-					if(minutes_without_dcf % DCF_RESET_INTERVAL == 0) {
-						dcf_reset_dcfreceive();
-					}
 				}
 				else {
 					minutes_without_dcf++;
 				}
 			}
-		}
-
-		if(dcf_is_dcfupdate()) {
-			dcf_clear_dcfupdate();
-			minutes_without_dcf = 0;
-			set_statusbit(STATUS_DCF);
 		}
 
 		if(alarm_is_sound_started()) {

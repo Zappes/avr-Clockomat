@@ -7,6 +7,9 @@
 
 uint8_t time_hours_bcd	=0;
 uint8_t time_minutes_bcd=0;
+uint8_t time_seconds_bcd=0;
+
+uint8_t tlc_periodic_flag = 0;
 
 void clock_init() {
 	i2c_init();
@@ -43,6 +46,10 @@ uint8_t time_get_minutes_bcd() {
 	return time_minutes_bcd;
 }
 
+uint8_t time_get_seconds_bcd() {
+	return time_seconds_bcd;
+}
+
 uint8_t time_get_hours() {
 	return (((time_hours_bcd & 0xf0) >> 4) * 10) + (time_hours_bcd & 0x0f);
 }
@@ -51,22 +58,28 @@ uint8_t time_get_minutes() {
 	return (((time_minutes_bcd & 0xf0) >> 4 ) * 10) + (time_minutes_bcd & 0x0f);
 }
 
-void time_set_time_bcd(uint8_t hours, uint8_t minutes) {
+uint8_t time_get_seconds() {
+	return (((time_seconds_bcd & 0xf0) >> 4 ) * 10) + (time_seconds_bcd & 0x0f);
+}
+
+void time_set_time_bcd(uint8_t hours, uint8_t minutes, uint8_t seconds) {
 	time_hours_bcd = hours;
 	time_minutes_bcd = minutes;
+	time_seconds_bcd = seconds;
 }
 
 void update_time() {
 	i2c_start_wait((DCF_ADDRESS << 1)+I2C_WRITE);
 
-	i2c_write(DCF_REG_MINUTE);
+	i2c_write(DCF_REG_SECOND);
 	i2c_rep_start((DCF_ADDRESS << 1)+I2C_READ);
 
+	uint8_t second = i2c_readAck();
 	uint8_t minute = i2c_readAck();
 	uint8_t hour = i2c_readNak();
 	i2c_stop();
 
-	time_set_time_bcd(hour, minute);
+	time_set_time_bcd(hour, minute, second);
 }
 
 /*
@@ -132,4 +145,14 @@ uint8_t dcf_is_periodic() {
 }
 void dcf_clear_periodic() {
 	write_dcf_reg(DCF_REG_STATUS, _BV(DCF_REGBIT_STATUS_PIF));
+}
+
+uint8_t tlc_is_periodic() {
+	return tlc_periodic_flag;
+}
+void tlc_clear_periodic() {
+	tlc_periodic_flag = 0;
+}
+void tlc_set_periodic() {
+	tlc_periodic_flag = 1;
 }

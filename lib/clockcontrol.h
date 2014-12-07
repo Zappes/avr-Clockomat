@@ -36,9 +36,12 @@
 
 uint8_t time_get_hours_bcd();
 uint8_t time_get_minutes_bcd();
+uint8_t time_get_seconds_bcd();
 uint8_t time_get_hours();
 uint8_t time_get_minutes();
-void time_set_time_bcd(uint8_t hours, uint8_t minutes);
+uint8_t time_get_seconds();
+
+void time_set_time_bcd(uint8_t hours, uint8_t minutes, uint8_t seconds);
 
 void clock_init();
 uint8_t read_dcf_reg(uint8_t reg);
@@ -57,6 +60,10 @@ void dcf_clear_alarm();
 void dcf_enable_periodic(uint8_t state);
 uint8_t dcf_is_periodic();
 void dcf_clear_periodic();
+
+uint8_t tlc_is_periodic();
+void tlc_clear_periodic();
+void tlc_set_periodic();
 
 #endif
 

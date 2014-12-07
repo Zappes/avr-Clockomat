@@ -1,6 +1,8 @@
 #ifndef CLOCKSTATUS_H
 #define CLOCKSTATUS_H
 
-#define STATUS_DCF		0
-#define STATUS_ALARM	1
+#define STATUS_DCF			0
+#define STATUS_PERIODIC	1
+#define STATUS_PROGRESS	2
+#define STATUS_ALARM		15
 #endif
